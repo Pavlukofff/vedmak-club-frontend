@@ -3,12 +3,7 @@ import { Link } from 'react-router-dom'
 import { Field, inputClass } from '../components/Field'
 import { api, extractErrorMessage } from '../lib/api'
 import { useAuth } from '../lib/AuthContext'
-
-function toDatetimeLocal(iso) {
-  const d = new Date(iso)
-  const offset = d.getTimezoneOffset() * 60000
-  return new Date(d - offset).toISOString().slice(0, 16)
-}
+import { toDatetimeLocal } from '../lib/datetime'
 
 const emptyForm = {
   type: 'ТС',

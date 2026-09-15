@@ -32,6 +32,9 @@ export default function Layout() {
             <NavLink to="/battles" className={navLinkClass}>
               Бои
             </NavLink>
+            <NavLink to="/bestiary" className={navLinkClass}>
+              Бестиарий
+            </NavLink>
           </nav>
 
           <div className="flex items-center gap-2">

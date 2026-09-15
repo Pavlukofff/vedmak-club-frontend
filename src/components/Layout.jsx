@@ -29,6 +29,9 @@ export default function Layout() {
             <NavLink to="/users" className={navLinkClass}>
               Участники
             </NavLink>
+            <NavLink to="/battles" className={navLinkClass}>
+              Бои
+            </NavLink>
           </nav>
 
           <div className="flex items-center gap-2">

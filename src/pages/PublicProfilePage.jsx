@@ -5,6 +5,7 @@ import { Field, inputClass } from '../components/Field'
 import { api, extractErrorMessage } from '../lib/api'
 import { useAuth } from '../lib/AuthContext'
 import { PENALTY_TYPES, penaltyTypeClass, penaltyTypeLabel } from '../lib/penalties'
+import { statusClass, statusLabel } from '../lib/tournaments'
 
 const MONTHS = [
   'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -119,6 +120,9 @@ export default function PublicProfilePage() {
           </div>
         </div>
       )}
+
+      <UserBattles username={profile.username} />
+      <UserTournaments username={profile.username} />
 
       {currentUser && currentUser.username !== profile.username && (
         <PenaltiesModeration profile={profile} />
@@ -302,6 +306,112 @@ function PenaltiesModeration({ profile }) {
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+function UserBattles({ username }) {
+  const [battles, setBattles] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    api
+      .get('/battles/', { params: { user: username } })
+      .then(({ data }) => setBattles(data))
+      .catch(() => setBattles([]))
+      .finally(() => setLoading(false))
+  }, [username])
+
+  // Как и в общем журнале — бой это уже состоявшееся событие, будущие
+  // даты (тестовые/запланированные) в профиле не показываем.
+  const pastBattles = battles.filter((b) => new Date(b.date) <= new Date())
+
+  function outcome(b) {
+    if (!b.winner) return { label: 'ничья', cls: 'text-muted bg-surface-2' }
+    return b.winner === username
+      ? { label: 'победа', cls: 'text-teal bg-teal-soft' }
+      : { label: 'поражение', cls: 'text-red bg-red-soft' }
+  }
+
+  if (loading) return null
+  if (pastBattles.length === 0) return null
+
+  return (
+    <div className="mb-8">
+      <h2 className="text-sm font-medium text-ink-soft mb-3">Бои</h2>
+      <ul className="space-y-2 max-w-md">
+        {pastBattles.map((b) => {
+          const opponent = b.fighter1 === username ? b.fighter2 : b.fighter1
+          const o = outcome(b)
+          return (
+            <li
+              key={b.id}
+              className="flex items-center justify-between gap-2 text-sm border border-border-soft rounded-md px-3.5 py-2.5"
+            >
+              <div>
+                <span>
+                  vs <Link to={`/u/${opponent}`} className="hover:text-accent-ink">{opponent}</Link>
+                </span>
+                {b.tournament && (
+                  <Link
+                    to={`/tournaments/${b.tournament}`}
+                    className="block text-xs text-accent-ink hover:underline mt-0.5"
+                  >
+                    🏆 {b.tournament_title}
+                  </Link>
+                )}
+                <p className="text-xs text-faint mt-0.5">
+                  {new Date(b.date).toLocaleDateString('ru-RU')} · {b.type}
+                </p>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${o.cls}`}>{o.label}</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function UserTournaments({ username }) {
+  const [tournaments, setTournaments] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    api
+      .get('/tournaments/', { params: { participant: username } })
+      .then(({ data }) => setTournaments(data))
+      .catch(() => setTournaments([]))
+      .finally(() => setLoading(false))
+  }, [username])
+
+  if (loading) return null
+  if (tournaments.length === 0) return null
+
+  return (
+    <div className="mb-8">
+      <h2 className="text-sm font-medium text-ink-soft mb-3">Турниры</h2>
+      <ul className="space-y-2 max-w-md">
+        {tournaments.map((t) => (
+          <li
+            key={t.id}
+            className="flex items-center justify-between gap-2 text-sm border border-border-soft rounded-md px-3.5 py-2.5"
+          >
+            <div>
+              <Link to={`/tournaments/${t.id}`} className="hover:text-accent-ink">
+                {t.title}
+              </Link>
+              {t.winner === username && <span className="ml-2 text-xs text-accent-ink">🏆 победитель</span>}
+              {t.runner_up === username && <span className="ml-2 text-xs text-muted">🥈 второе место</span>}
+            </div>
+            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${statusClass(t.status)}`}>
+              {statusLabel(t.status)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

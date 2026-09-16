@@ -13,6 +13,7 @@ const emptyForm = {
   is_ranked: false,
   main_judge: '',
   side_judge: '',
+  tournament: '',
   date: toDatetimeLocal(new Date().toISOString()),
   notes: '',
 }
@@ -26,6 +27,7 @@ function battleToForm(battle) {
     is_ranked: battle.is_ranked,
     main_judge: battle.main_judge || '',
     side_judge: battle.side_judge || '',
+    tournament: battle.tournament ? String(battle.tournament) : '',
     date: toDatetimeLocal(battle.date),
     notes: battle.notes || '',
   }
@@ -36,10 +38,12 @@ export default function BattlesPage() {
   const [battles, setBattles] = useState([])
   const [ratings, setRatings] = useState([])
   const [users, setUsers] = useState([])
+  const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [filterUser, setFilterUser] = useState('')
 
   function load() {
     setLoading(true)
@@ -47,11 +51,13 @@ export default function BattlesPage() {
       api.get('/battles/'),
       api.get('/battles/ratings/'),
       api.get('/accounts/users/'),
+      api.get('/tournaments/'),
     ])
-      .then(([b, r, u]) => {
+      .then(([b, r, u, t]) => {
         setBattles(b.data)
         setRatings(r.data)
         setUsers(u.data)
+        setTournaments(t.data)
       })
       .catch(() => setError('Не удалось загрузить бои.'))
       .finally(() => setLoading(false))
@@ -66,6 +72,23 @@ export default function BattlesPage() {
     })
     return map
   }, [users])
+
+  // Бой — это фиксация уже состоявшейся схватки, а не план на будущее;
+  // бэкенд сортирует по дате убывания, так что без этого фильтра бои с
+  // датой вперёд (например, из тестовых турниров) всплывали бы на самый
+  // верх журнала, выше настоящих прошедших боёв.
+  const pastBattles = useMemo(
+    () => battles.filter((b) => new Date(b.date) <= new Date()),
+    [battles],
+  )
+
+  const filteredBattles = useMemo(
+    () =>
+      filterUser
+        ? pastBattles.filter((b) => b.fighter1 === filterUser || b.fighter2 === filterUser)
+        : pastBattles,
+    [pastBattles, filterUser],
+  )
 
   function displayName(username) {
     return usersByName[username] || username
@@ -133,31 +156,52 @@ export default function BattlesPage() {
       </section>
 
       <section>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <h2 className="text-sm font-medium text-ink-soft">Журнал боёв</h2>
-          {isAuthenticated && (
-            <button
-              onClick={() => setCreating((v) => !v)}
-              className="text-xs border border-border rounded-md px-2.5 py-1.5 text-ink-soft hover:border-accent hover:text-ink"
+          <div className="flex items-center gap-2">
+            <select
+              className={`${inputClass} text-xs py-1.5 w-auto`}
+              value={filterUser}
+              onChange={(e) => setFilterUser(e.target.value)}
             >
-              {creating ? 'Отмена' : 'Записать бой'}
-            </button>
-          )}
+              <option value="">Все участники</option>
+              {users.map((u) => (
+                <option key={u.username} value={u.username}>
+                  {u.display_name}
+                </option>
+              ))}
+            </select>
+            {isAuthenticated && (
+              <button
+                onClick={() => setCreating((v) => !v)}
+                className="text-xs border border-border rounded-md px-2.5 py-1.5 text-ink-soft hover:border-accent hover:text-ink whitespace-nowrap"
+              >
+                {creating ? 'Отмена' : 'Записать бой'}
+              </button>
+            )}
+          </div>
         </div>
 
         {creating && (
           <div className="mb-6 max-w-xl">
-            <BattleForm users={users} onSubmit={handleCreate} onCancel={() => setCreating(false)} />
+            <BattleForm
+              users={users}
+              tournaments={tournaments}
+              onSubmit={handleCreate}
+              onCancel={() => setCreating(false)}
+            />
           </div>
         )}
 
         {loading ? (
           <p className="text-sm text-muted">Загрузка…</p>
-        ) : battles.length === 0 ? (
-          <p className="text-sm text-muted">Боёв ещё не было.</p>
+        ) : filteredBattles.length === 0 ? (
+          <p className="text-sm text-muted">
+            {filterUser ? 'У этого участника пока нет боёв.' : 'Боёв ещё не было.'}
+          </p>
         ) : (
           <ul className="space-y-2 max-w-2xl">
-            {battles.map((b) => (
+            {filteredBattles.map((b) => (
               <li key={b.id} className="border border-border-soft rounded-md px-3.5 py-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -167,6 +211,18 @@ export default function BattlesPage() {
                     {b.is_ranked && (
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-soft text-teal">
                         ранговый
+                      </span>
+                    )}
+                    {b.tournament ? (
+                      <Link
+                        to={`/tournaments/${b.tournament}`}
+                        className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink hover:opacity-80"
+                      >
+                        🏆 {b.tournament_title}
+                      </Link>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-faint">
+                        не турнирный
                       </span>
                     )}
                     <span>
@@ -199,6 +255,7 @@ export default function BattlesPage() {
                   <div className="mt-3 pt-3 border-t border-border-soft">
                     <BattleForm
                       users={users}
+                      tournaments={tournaments}
                       initial={b}
                       onSubmit={(payload) => handleUpdate(b.id, payload)}
                       onCancel={() => setEditingId(null)}
@@ -215,7 +272,7 @@ export default function BattlesPage() {
   )
 }
 
-function BattleForm({ users, initial, onSubmit, onCancel, submitLabel = 'Записать' }) {
+function BattleForm({ users, tournaments, initial, onSubmit, onCancel, submitLabel = 'Записать' }) {
   const [form, setForm] = useState(initial ? battleToForm(initial) : emptyForm)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -239,6 +296,7 @@ function BattleForm({ users, initial, onSubmit, onCancel, submitLabel = 'Зап�
         is_ranked: form.is_ranked,
         main_judge: form.main_judge || null,
         side_judge: form.side_judge || null,
+        tournament: form.tournament ? Number(form.tournament) : null,
         date: new Date(form.date).toISOString(),
         notes: form.notes,
       })
@@ -314,6 +372,21 @@ function BattleForm({ users, initial, onSubmit, onCancel, submitLabel = 'Зап�
           {winnerOptions.map((username) => (
             <option key={username} value={username}>
               {users.find((u) => u.username === username)?.display_name || username}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Турнир" hint="Необязательно — если бой относится к турниру">
+        <select
+          className={inputClass}
+          value={form.tournament}
+          onChange={(e) => update('tournament', e.target.value)}
+        >
+          <option value="">не турнирный</option>
+          {tournaments.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
             </option>
           ))}
         </select>

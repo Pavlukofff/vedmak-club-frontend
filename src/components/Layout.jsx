@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
+import NavDropdown from './NavDropdown'
+import { api } from '../lib/api'
 import { useAuth } from '../lib/AuthContext'
 
 const navLinkClass = ({ isActive }) =>
@@ -6,8 +9,36 @@ const navLinkClass = ({ isActive }) =>
     isActive ? 'text-accent-ink bg-accent-soft' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
   }`
 
+const GAME_LINKS = [
+  { to: '/battles', label: 'Бои' },
+  { to: '/bestiary', label: 'Бестиарий' },
+  { to: '/tasks', label: 'Задания' },
+  { to: '/ranks', label: 'Ранги' },
+  { to: '/tournaments', label: 'Турниры' },
+  { to: '/shop', label: 'Магазин' },
+]
+
+const CLUB_LINKS = [
+  { to: '/blog', label: 'Блог' },
+  { to: '/festivals', label: 'Фестивали' },
+  { to: '/schedule', label: 'Расписание' },
+  { to: '/codex', label: 'Кодекс' },
+  { to: '/subscriptions', label: 'Абонементы' },
+  { to: '/fundraisers', label: 'Сборы средств' },
+]
+
 export default function Layout() {
   const { user, isAuthenticated, logout, isLoading } = useAuth()
+  const [socialLinks, setSocialLinks] = useState([])
+
+  useEffect(() => {
+    // В подвале — только ссылки клуба и оружейни; ссылки мастеров школ
+    // (их может быть много) смотрят на отдельной странице /social.
+    api
+      .get('/social-links/')
+      .then(({ data }) => setSocialLinks(data.filter((l) => l.owner_type !== 'master')))
+      .catch(() => setSocialLinks([]))
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col bg-bg text-ink">
@@ -29,27 +60,8 @@ export default function Layout() {
             <NavLink to="/users" className={navLinkClass}>
               Участники
             </NavLink>
-            <NavLink to="/battles" className={navLinkClass}>
-              Бои
-            </NavLink>
-            <NavLink to="/bestiary" className={navLinkClass}>
-              Бестиарий
-            </NavLink>
-            <NavLink to="/tasks" className={navLinkClass}>
-              Задания
-            </NavLink>
-            <NavLink to="/ranks" className={navLinkClass}>
-              Ранги
-            </NavLink>
-            <NavLink to="/shop" className={navLinkClass}>
-              Магазин
-            </NavLink>
-            <NavLink to="/subscriptions" className={navLinkClass}>
-              Абонементы
-            </NavLink>
-            <NavLink to="/tournaments" className={navLinkClass}>
-              Турниры
-            </NavLink>
+            <NavDropdown label="Игра" items={GAME_LINKS} />
+            <NavDropdown label="О клубе" items={CLUB_LINKS} />
           </nav>
 
           <div className="flex items-center gap-2">
@@ -105,7 +117,27 @@ export default function Layout() {
 
       <footer className="border-t border-border-soft">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-xs text-faint">
-          Цех ведьмаков · вымышленный фехтовальный клуб
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <span>Цех ведьмаков · вымышленный фехтовальный клуб</span>
+            {socialLinks.length > 0 && (
+              <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
+                {socialLinks.map((l) => (
+                  <a
+                    key={l.id}
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-ink"
+                  >
+                    {l.label || l.platform}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link to="/social" className="block mt-2 hover:text-ink">
+            все ссылки клуба и школ →
+          </Link>
         </div>
       </footer>
     </div>

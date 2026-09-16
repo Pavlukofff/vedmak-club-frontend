@@ -16,6 +16,15 @@ import ShopPage from './pages/ShopPage'
 import SubscriptionsPage from './pages/SubscriptionsPage'
 import TournamentsPage from './pages/TournamentsPage'
 import TournamentDetailPage from './pages/TournamentDetailPage'
+import BlogPage from './pages/BlogPage'
+import BlogPostPage from './pages/BlogPostPage'
+import FestivalsPage from './pages/FestivalsPage'
+import FestivalDetailPage from './pages/FestivalDetailPage'
+import SchedulePage from './pages/SchedulePage'
+import CodexPage from './pages/CodexPage'
+import SocialLinksPage from './pages/SocialLinksPage'
+import FundraisersPage from './pages/FundraisersPage'
+import FundraiserDetailPage from './pages/FundraiserDetailPage'
 
 export default function App() {
   return (
@@ -34,6 +43,15 @@ export default function App() {
         <Route path="subscriptions" element={<SubscriptionsPage />} />
         <Route path="tournaments" element={<TournamentsPage />} />
         <Route path="tournaments/:id" element={<TournamentDetailPage />} />
+        <Route path="blog" element={<BlogPage />} />
+        <Route path="blog/:slug" element={<BlogPostPage />} />
+        <Route path="festivals" element={<FestivalsPage />} />
+        <Route path="festivals/:id" element={<FestivalDetailPage />} />
+        <Route path="schedule" element={<SchedulePage />} />
+        <Route path="codex" element={<CodexPage />} />
+        <Route path="social" element={<SocialLinksPage />} />
+        <Route path="fundraisers" element={<FundraisersPage />} />
+        <Route path="fundraisers/:id" element={<FundraiserDetailPage />} />
         <Route path="u/:username" element={<PublicProfilePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="cabinet" element={<CabinetPage />} />

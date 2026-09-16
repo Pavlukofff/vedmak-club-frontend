@@ -67,6 +67,14 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             {isLoading ? null : isAuthenticated ? (
               <div className="flex items-center gap-2">
+                {user.is_staff && (
+                  <NavLink
+                    to="/dashboard"
+                    className="text-sm text-ink-soft hover:text-ink px-2.5 py-1.5 rounded-md hover:bg-surface-2 hidden lg:inline"
+                  >
+                    Дашборд
+                  </NavLink>
+                )}
                 <Link
                   to="/cabinet"
                   className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-surface-2"

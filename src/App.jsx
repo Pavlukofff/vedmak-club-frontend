@@ -25,6 +25,7 @@ import CodexPage from './pages/CodexPage'
 import SocialLinksPage from './pages/SocialLinksPage'
 import FundraisersPage from './pages/FundraisersPage'
 import FundraiserDetailPage from './pages/FundraiserDetailPage'
+import DashboardPage from './pages/DashboardPage'
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="u/:username" element={<PublicProfilePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="cabinet" element={<CabinetPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
         </Route>
       </Route>
     </Routes>
